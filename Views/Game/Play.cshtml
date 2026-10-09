@@ -1,0 +1,104 @@
+@model BlackJack.ViewModels.GameViewModel
+@{
+    ViewData["Title"] = "Blackjack - Oyun Masası";
+
+    // Kart isimlerini ("Hearts-10") görsel sembollere çevirmek için yerel bir Razor fonksiyonu
+    string GetCardSymbol(string suit)
+    {
+        return suit switch
+        {
+            "Hearts" => "♥",
+            "Diamonds" => "♦",
+            "Clubs" => "♣",
+            "Spades" => "♠",
+            _ => suit
+        };
+    }
+
+    string GetCardColor(string suit)
+    {
+        return (suit == "Hearts" || suit == "Diamonds") ? "text-danger" : "text-dark";
+    }
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <!-- Kurpiyerin Alanı -->
+        <div class="col-md-12 mb-4 text-center">
+            <h3>Kurpiyerin Eli <span class="badge bg-secondary">Skor: @Model.DealerScore</span></h3>
+            <div class="d-flex justify-content-center flex-wrap mt-3">
+                @foreach (var card in Model.DealerHand)
+                {
+                    var parts = card.Split('-');
+                    var suit = parts[0];
+                    var value = parts[1];
+                    
+                    <div class="card mx-2 shadow-sm" style="width: 80px; height: 120px;">
+                        <div class="card-body p-2 text-center @GetCardColor(suit)">
+                            <h4 class="card-title mt-1">@value</h4>
+                            <h2 class="card-text">@GetCardSymbol(suit)</h2>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Oyun Mesajı ve Durumu -->
+    @if (Model.IsGameOver)
+    {
+        <div class="row mb-4">
+            <div class="col-md-8 offset-md-2 text-center">
+                <div class="alert @(Model.GameMessage.Contains("Kazan") ? "alert-success" : (Model.GameMessage.Contains("Berabere") ? "alert-warning" : "alert-danger")) p-4 shadow">
+                    <h3>@Model.GameMessage</h3>
+                    <p class="mb-0">Kapanan Bahis: <strong>@Model.CurrentBet Çip</strong></p>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Oyuncunun Alanı -->
+        <div class="col-md-12 mb-4 text-center">
+            <h3>Senin Elin <span class="badge bg-primary">Skor: @Model.PlayerScore</span></h3>
+            <div class="d-flex justify-content-center flex-wrap mt-3">
+                @foreach (var card in Model.PlayerHand)
+                {
+                    var parts = card.Split('-');
+                    var suit = parts[0];
+                    var value = parts[1];
+
+                    <div class="card mx-2 shadow-sm border-primary" style="width: 80px; height: 120px;">
+                        <div class="card-body p-2 text-center @GetCardColor(suit)">
+                            <h4 class="card-title mt-1">@value</h4>
+                            <h2 class="card-text">@GetCardSymbol(suit)</h2>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Aksiyon Butonları -->
+    <div class="row mt-2">
+        <div class="col-md-12 text-center">
+            @if (!Model.IsGameOver)
+            {
+                <form method="post" class="d-inline">
+                    <button type="submit" asp-controller="Game" asp-action="Hit" class="btn btn-warning btn-lg mx-2 px-5">
+                        Kart Çek (Hit)
+                    </button>
+                </form>
+                <form method="post" class="d-inline">
+                    <button type="submit" asp-controller="Game" asp-action="Stand" class="btn btn-danger btn-lg mx-2 px-5">
+                        Dur (Stand)
+                    </button>
+                </form>
+            }
+            else
+            {
+                <a asp-controller="Game" asp-action="Index" class="btn btn-primary btn-lg mt-3">Yeni Oyun Oyna</a>
+            }
+        </div>
+    </div>
+</div>

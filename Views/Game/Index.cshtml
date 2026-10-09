@@ -1,0 +1,33 @@
+@{
+    ViewData["Title"] = "Blackjack - Yeni Oyun";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white text-center">
+                    <h4>Yeni Oyun Başlat</h4>
+                </div>
+                <div class="card-body text-center">
+                    <p class="lead">Oynamak istediğiniz bahis miktarını girin.</p>
+                    
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            @Html.ValidationSummary(false, "", new { @class = "text-danger" })
+                        </div>
+                    }
+
+                    <form asp-controller="Game" asp-action="Start" method="post">
+                        <div class="form-group mb-3">
+                            <label for="betAmount" class="form-label fw-bold">Bahis Miktarı (Çip):</label>
+                            <input type="number" class="form-control form-control-lg text-center" id="betAmount" name="betAmount" value="100" min="1" required />
+                        </div>
+                        <button type="submit" class="btn btn-success btn-lg w-100">Oyuna Başla</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
