@@ -37,6 +37,9 @@ namespace BlackJack.Controllers
             }
 
             var user = await _userManager.GetUserAsync(User);
+            
+            // Null kontrolü (Oturum düşmüşse giriş sayfasına yönlendirir)
+            if (user == null) return Challenge(); 
 
             // Bakiye kontrolü (Oyuncunun yeterli çipi var mı?)
             if (user.TotalChips < betAmount)
@@ -78,7 +81,10 @@ namespace BlackJack.Controllers
             if (game.IsGameOver)
             {
                 var user = await _userManager.GetUserAsync(User);
-                await _blackjackService.SaveGameResultAsync(user.Id, game.CurrentBet, game.GameMessage);
+                if (user != null) // Null referans hatasını önlemek için kontrol
+                {
+                    await _blackjackService.SaveGameResultAsync(user.Id, game.CurrentBet, game.GameMessage);
+                }
             }
 
             return View("Play", game);
@@ -100,7 +106,10 @@ namespace BlackJack.Controllers
 
             // Sonucu veritabanına yaz
             var user = await _userManager.GetUserAsync(User);
-            await _blackjackService.SaveGameResultAsync(user.Id, game.CurrentBet, game.GameMessage);
+            if (user != null) // Null referans hatasını önlemek için kontrol
+            {
+                await _blackjackService.SaveGameResultAsync(user.Id, game.CurrentBet, game.GameMessage);
+            }
 
             return View("Play", game);
         }
