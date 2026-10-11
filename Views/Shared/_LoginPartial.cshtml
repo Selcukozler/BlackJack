@@ -3,32 +3,32 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
 
-<ul class="navbar-nav">
+<div class="navbar-nav align-items-center ms-auto">
 @if (SignInManager.IsSignedIn(User))
 {
     var user = await UserManager.GetUserAsync(User);
     
-    <li class="nav-item d-flex align-items-center me-3">
-        <span class="badge bg-warning text-dark fs-6 shadow-sm">
-            💰 Çip: @(user?.TotalChips ?? 0)
+    <div class="nav-item me-3">
+        <span class="badge bg-warning text-dark fs-6 px-3 py-2 rounded-pill shadow-sm">
+            Çip: @(user?.TotalChips ?? 0)
         </span>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Merhaba @User.Identity?.Name!</a>
-    </li>
-    <li class="nav-item">
-        <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Game", new { area = "" })">
-            <button type="submit" class="nav-link btn btn-link text-dark" style="border: none; background: none; padding: 0.5rem 1rem;">Çıkış Yap</button>
-        </form>
-    </li>
+    </div>
+    
+    <div class="nav-item dropdown">
+        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+            <span class="d-none d-md-inline-flex">@User.Identity?.Name</span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-end bg-secondary border-0 rounded-0 rounded-bottom m-0">
+            <a asp-area="Identity" asp-page="/Account/Manage/Index" class="dropdown-item">Profil</a>
+            <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Game", new { area = "" })">
+                <button type="submit" class="dropdown-item">Çıkış Yap</button>
+            </form>
+        </div>
+    </div>
 }
 else
 {
-    <li class="nav-item">
-        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">Kayıt Ol</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">Giriş Yap</a>
-    </li>
+    <a asp-area="Identity" asp-page="/Account/Register" class="nav-item nav-link">Kayıt Ol</a>
+    <a asp-area="Identity" asp-page="/Account/Login" class="nav-item nav-link">Giriş Yap</a>
 }
-</ul>
+</div>
