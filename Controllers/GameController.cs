@@ -13,7 +13,7 @@ namespace BlackJack.Controllers
     {
         private readonly IBlackjackService _blackjackService;
         private readonly UserManager<ApplicationUser> _userManager;
-        private const string GameSessionKey = "CurrentGameState"; // Session için anahtar kelime
+        private const string GameSessionKey = "CurrentGameState"; 
 
         public GameController(IBlackjackService blackjackService, UserManager<ApplicationUser> userManager)
         {
@@ -22,26 +22,16 @@ namespace BlackJack.Controllers
         }
 
         [HttpGet]
-        public IActionResult Index()
-        {
-            return View();
-        }
+        public IActionResult Index() => View();
 
         [HttpPost]
         public async Task<IActionResult> Start(int betAmount)
         {
-            if (betAmount <= 0)
-            {
-                ModelState.AddModelError("", "Lütfen 0'dan büyük bir bahis girin.");
-                return View("Index");
-            }
+            if (betAmount <= 0) { ModelState.AddModelError("", "Geçerli bir bahis girin."); return View("Index"); }
 
             var user = await _userManager.GetUserAsync(User);
-            
-            // Null kontrolü (Oturum düşmüşse giriş sayfasına yönlendirir)
             if (user == null) return Challenge(); 
 
-            // Bakiye kontrolü (Oyuncunun yeterli çipi var mı?)
             if (user.TotalChips < betAmount)
             {
                 ModelState.AddModelError("", $"Yetersiz bakiye. Mevcut çipiniz: {user.TotalChips}");
@@ -49,43 +39,68 @@ namespace BlackJack.Controllers
             }
 
             var game = _blackjackService.StartNewGame(betAmount);
-
-            // Eğer oyun başlar başlamaz bittiyse (İlk iki kartta Blackjack durumu)
-            if (game.IsGameOver)
-            {
-                await _blackjackService.SaveGameResultAsync(user.Id, game.CurrentBet, game.GameMessage);
-            }
-
-            // Oyun durumunu JSON olarak Session'a atıyoruz
-            HttpContext.Session.SetObject(GameSessionKey, game);
+            if (game.IsGameOver) await _blackjackService.SaveGameResultAsync(user.Id, game.CurrentBet, game.ChipChange, game.GameMessage);
             
+            HttpContext.Session.SetObject(GameSessionKey, game);
             return View("Play", game);
         }
 
         [HttpPost]
         public async Task<IActionResult> Hit()
         {
-            // Session'dan mevcut oyun durumunu çek
             var game = HttpContext.Session.GetObject<GameViewModel>(GameSessionKey);
-            if (game == null) return RedirectToAction("Index"); // Oyun yoksa başa dön
+            if (game == null) return RedirectToAction("Index");
 
-            if (game.IsGameOver) return View("Play", game);
-
-            // Servis üzerinden kart çekme işlemini yap
             game = _blackjackService.Hit(game);
-
-            // Yeni durumu Session'a kaydet
             HttpContext.Session.SetObject(GameSessionKey, game);
 
-            // Eğer oyuncu kart çektikten sonra 21'i geçtiyse oyun biter, veritabanına kaydet
             if (game.IsGameOver)
             {
                 var user = await _userManager.GetUserAsync(User);
-                if (user != null) // Null referans hatasını önlemek için kontrol
-                {
-                    await _blackjackService.SaveGameResultAsync(user.Id, game.CurrentBet, game.GameMessage);
-                }
+                if (user != null) await _blackjackService.SaveGameResultAsync(user.Id, game.CurrentBet, game.ChipChange, game.GameMessage);
             }
+            return View("Play", game);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DoubleDown()
+        {
+            var game = HttpContext.Session.GetObject<GameViewModel>(GameSessionKey);
+            if (game == null) return RedirectToAction("Index");
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge(); 
+
+            // İkiye katlamak için kasada o anki bahsi kadar DAHASI olması lazım
+            if (user.TotalChips < game.CurrentBet * 2)
+            {
+                // UI'da hata göstermek için mesaj ekleyebilirsiniz, şimdilik işlemi iptal edip geri dönüyor
+                return View("Play", game);
+            }
+
+            game = _blackjackService.DoubleDown(game);
+            HttpContext.Session.SetObject(GameSessionKey, game);
+
+            if (game.IsGameOver)
+                await _blackjackService.SaveGameResultAsync(user.Id, game.CurrentBet, game.ChipChange, game.GameMessage);
+
+            return View("Play", game);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Split()
+        {
+            var game = HttpContext.Session.GetObject<GameViewModel>(GameSessionKey);
+            if (game == null) return RedirectToAction("Index");
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge(); 
+
+            // Bölmek için de mevcut bahsi kadar ekstra çipe ihtiyaç var
+            if (user.TotalChips < game.CurrentBet * 2) return View("Play", game);
+
+            game = _blackjackService.Split(game);
+            HttpContext.Session.SetObject(GameSessionKey, game);
 
             return View("Play", game);
         }
@@ -96,21 +111,14 @@ namespace BlackJack.Controllers
             var game = HttpContext.Session.GetObject<GameViewModel>(GameSessionKey);
             if (game == null) return RedirectToAction("Index");
 
-            if (game.IsGameOver) return View("Play", game);
-
-            // Servis üzerinden Stand aksiyonunu çalıştır (Kurpiyer kart çeker)
             game = _blackjackService.Stand(game);
-
-            // Oyun mutlaka bittiği için durumu Session'a kaydet
             HttpContext.Session.SetObject(GameSessionKey, game);
 
-            // Sonucu veritabanına yaz
-            var user = await _userManager.GetUserAsync(User);
-            if (user != null) // Null referans hatasını önlemek için kontrol
+            if (game.IsGameOver)
             {
-                await _blackjackService.SaveGameResultAsync(user.Id, game.CurrentBet, game.GameMessage);
+                var user = await _userManager.GetUserAsync(User);
+                if (user != null) await _blackjackService.SaveGameResultAsync(user.Id, game.CurrentBet, game.ChipChange, game.GameMessage);
             }
-
             return View("Play", game);
         }
     }

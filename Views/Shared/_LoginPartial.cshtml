@@ -6,6 +6,13 @@
 <ul class="navbar-nav">
 @if (SignInManager.IsSignedIn(User))
 {
+    var user = await UserManager.GetUserAsync(User);
+    
+    <li class="nav-item d-flex align-items-center me-3">
+        <span class="badge bg-warning text-dark fs-6 shadow-sm">
+            💰 Çip: @(user?.TotalChips ?? 0)
+        </span>
+    </li>
     <li class="nav-item">
         <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Merhaba @User.Identity?.Name!</a>
     </li>

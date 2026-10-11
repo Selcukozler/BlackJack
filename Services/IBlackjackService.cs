@@ -7,6 +7,8 @@ namespace BlackJack.Services
         GameViewModel StartNewGame(int betAmount);
         GameViewModel Hit(GameViewModel currentGame);
         GameViewModel Stand(GameViewModel currentGame);
-        Task SaveGameResultAsync(string userId, int betAmount, string result);
+        GameViewModel DoubleDown(GameViewModel currentGame);
+        GameViewModel Split(GameViewModel currentGame);
+        Task SaveGameResultAsync(string userId, int betAmount, int chipChange, string result);
     }
 }
