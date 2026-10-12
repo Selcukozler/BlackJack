@@ -3,32 +3,52 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
 
-<div class="navbar-nav align-items-center ms-auto">
 @if (SignInManager.IsSignedIn(User))
 {
     var user = await UserManager.GetUserAsync(User);
     
-    <div class="nav-item me-3">
-        <span class="badge bg-warning text-dark fs-6 px-3 py-2 rounded-pill shadow-sm">
-            Çip: @(user?.TotalChips ?? 0)
-        </span>
-    </div>
-    
-    <div class="nav-item dropdown">
-        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
-            <span class="d-none d-md-inline-flex">@User.Identity?.Name</span>
-        </a>
-        <div class="dropdown-menu dropdown-menu-end bg-secondary border-0 rounded-0 rounded-bottom m-0">
-            <a asp-area="Identity" asp-page="/Account/Manage/Index" class="dropdown-item">Profil</a>
-            <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Game", new { area = "" })">
-                <button type="submit" class="dropdown-item">Çıkış Yap</button>
-            </form>
+    <div class="d-flex align-items-center">
+        <!-- Çip Gösterimi -->
+        <div class="me-3">
+            <span class="badge bg-warning text-dark fs-6 px-3 py-2 rounded-pill shadow-sm">
+                Çip: @(user?.TotalChips ?? 0)
+            </span>
+        </div>
+        
+        <!-- Kullanıcı Açılır Menüsü (Dropdown) -->
+        <div class="dropdown">
+            <a href="#" data-bs-toggle="dropdown" aria-expanded="false" class="d-flex align-items-center text-decoration-none dropdown-toggle text-secondary">
+                <span class="d-none d-md-block fs-6">@User.Identity?.Name</span>
+            </a>
+            
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+                <li>
+                    <!-- Kendi oluşturduğumuz Profile sayfasına yönlendirir -->
+                    <a class="dropdown-item py-2" asp-area="" asp-controller="Profile" asp-action="Index">
+                        <i class="bi bi-person me-2 text-primary"></i> Profilim
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <!-- Çıkış Yap Formu/Butonu -->
+                    <form class="form-inline m-0 p-0" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Game", new { area = "" })">
+                        <button type="submit" class="dropdown-item py-2 text-danger">
+                            <i class="bi bi-box-arrow-left me-2"></i> Çıkış Yap
+                        </button>
+                    </form>
+                </li>
+            </ul>
         </div>
     </div>
 }
 else
 {
-    <a asp-area="Identity" asp-page="/Account/Register" class="nav-item nav-link">Kayıt Ol</a>
-    <a asp-area="Identity" asp-page="/Account/Login" class="nav-item nav-link">Giriş Yap</a>
+    <ul class="navbar-nav ms-auto flex-row gap-3">
+        <li class="nav-item">
+            <a class="nav-link btn btn-outline-primary px-3 rounded-pill" asp-area="Identity" asp-page="/Account/Register">Kayıt Ol</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link btn btn-primary text-white px-3 rounded-pill" asp-area="Identity" asp-page="/Account/Login">Giriş Yap</a>
+        </li>
+    </ul>
 }
-</div>

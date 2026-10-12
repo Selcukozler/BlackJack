@@ -34,14 +34,18 @@
                 <div class="sidebar-menu">
                     <ul class="menu">
                         <li class="sidebar-title">Menü</li>
-                        <li class="sidebar-item active">
+                        
+                        <!-- Eğer mevcut Controller "Game" ise bu li elemanına 'active' sınıfı eklenir -->
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Game" ? "active" : "")">
                             <a asp-controller="Game" asp-action="Index" class='sidebar-link'>
                                 <i class="bi bi-grid-fill"></i>
                                 <span>Oyun Masası</span>
                             </a>
                         </li>
-                        <li class="sidebar-item">
-                            <a asp-area="Identity" asp-page="/Account/Manage/Index" class='sidebar-link'>
+                        
+                        <!-- Eğer mevcut Controller "Profile" ise bu li elemanına 'active' sınıfı eklenir -->
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Profile" ? "active" : "")">
+                            <a asp-controller="Profile" asp-action="Index" class='sidebar-link'>
                                 <i class="bi bi-person-badge-fill"></i>
                                 <span>Profilim</span>
                             </a>
@@ -71,6 +75,7 @@
                         
                         <div class="collapse navbar-collapse" id="navbarSupportedContent">
                             <div class="navbar-nav ms-auto mb-2 mb-lg-0">
+                                <!-- Üst menü sağ taraftaki kullanıcı bilgileri ve çıkış butonu -->
                                 <partial name="_LoginPartial" />
                             </div>
                         </div>
