@@ -33,24 +33,38 @@
                 </div>
                 <div class="sidebar-menu">
                     <ul class="menu">
-                        <li class="sidebar-title">Menü</li>
-                        
-                        <!-- Eğer mevcut Controller "Game" ise bu li elemanına 'active' sınıfı eklenir -->
-                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Game" ? "active" : "")">
-                            <a asp-controller="Game" asp-action="Index" class='sidebar-link'>
-                                <i class="bi bi-grid-fill"></i>
-                                <span>Oyun Masası</span>
-                            </a>
-                        </li>
-                        
-                        <!-- Eğer mevcut Controller "Profile" ise bu li elemanına 'active' sınıfı eklenir -->
-                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Profile" ? "active" : "")">
-                            <a asp-controller="Profile" asp-action="Index" class='sidebar-link'>
-                                <i class="bi bi-person-badge-fill"></i>
-                                <span>Profilim</span>
-                            </a>
-                        </li>
-                    </ul>
+    <li class="sidebar-title">Oyunlar</li>
+    
+    <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Game" ? "active" : "")">
+        <a asp-controller="Game" asp-action="Index" class='sidebar-link'>
+            <i class="bi bi-suit-spade-fill text-dark"></i>
+            <span>Blackjack</span>
+        </a>
+    </li>
+
+    <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Pisti" ? "active" : "")">
+        <a asp-controller="Pisti" asp-action="Index" class='sidebar-link'>
+            <i class="bi bi-suit-club-fill text-primary"></i>
+            <span>Pişti</span>
+        </a>
+    </li>
+
+    <li class="sidebar-title">Diğer</li>
+
+    <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Leaderboard" ? "active" : "")">
+        <a asp-controller="Leaderboard" asp-action="Index" class='sidebar-link'>
+            <i class="bi bi-trophy-fill text-warning"></i>
+            <span>Liderlik Tablosu</span>
+        </a>
+    </li>
+    
+    <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Profile" ? "active" : "")">
+        <a asp-controller="Profile" asp-action="Index" class='sidebar-link'>
+            <i class="bi bi-person-badge-fill text-info"></i>
+            <span>Profilim</span>
+        </a>
+    </li>
+</ul>
                 </div>
                 <button class="sidebar-toggler btn x"><i data-feather="x"></i></button>
             </div>
@@ -116,5 +130,26 @@
     <script src="/assets/js/main.js"></script>
     
     @await RenderSectionAsync("Scripts", required: false)
+   <!-- Sayfa Yenilendiğinde Kaydırma (Scroll) Pozisyonunu Koruyan Script - YUMUŞATILDI -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function(event) { 
+            var scrollpos = sessionStorage.getItem('scrollpos');
+            var scrollUrl = sessionStorage.getItem('scrollUrl');
+            
+            if (scrollpos && scrollUrl === window.location.href) {
+                // Hızlı zıplama yerine, ekranı anında oraya odaklar ve animasyonların titretmesini önler
+                window.scrollTo({
+                    top: parseInt(scrollpos),
+                    left: 0,
+                    behavior: "instant" 
+                });
+            }
+        });
+
+        window.addEventListener("beforeunload", function (e) {
+            sessionStorage.setItem('scrollpos', window.scrollY);
+            sessionStorage.setItem('scrollUrl', window.location.href);
+        });
+    </script>
 </body>
 </html>

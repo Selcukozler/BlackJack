@@ -1,0 +1,291 @@
+@model BlackJack.ViewModels.PistiViewModel
+@{
+    ViewData["Title"] = "Pişti - Oyun Masası";
+    string Format(double d) => d.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    string GetCardSymbol(string suit) => suit switch { "Hearts" => "♥", "Diamonds" => "♦", "Clubs" => "♣", "Spades" => "♠", _ => suit };
+    string GetCardColor(string suit) => (suit == "Hearts" || suit == "Diamonds") ? "text-danger" : "text-dark";
+
+    // ÖZEL KART RENKLENDİRME FONKSİYONU (Altın ve Gümüş Kartlar)
+    string GetSpecialCardClass(string suit, string value) {
+        if (value == "J") return "gold-card"; // Valeler Altın
+        if (value == "A" || (suit == "Diamonds" && value == "10") || (suit == "Clubs" && value == "2")) return "silver-card"; // Diğer Puanlar Gümüş
+        return "bg-white"; // Normal Kartlar Beyaz
+    }
+
+    // DİNAMİK ZAMAN ÇİZELGESİ (TIMELINE)
+    double pThrowDelay = 0.0;
+    double pThrowDur = 0.5;
+    double pCapDelay = pThrowDelay + pThrowDur;
+    double pCapDur = Model.DidPlayerCapture ? 1.0 : 0.0;
+    
+    bool hasDealerThrow = !string.IsNullOrEmpty(Model.DealerLastPlayedCard);
+    double dThrowDelay = pCapDelay + pCapDur;
+    double dThrowDur = hasDealerThrow ? 0.5 : 0.0;
+    double dCapDelay = dThrowDelay + dThrowDur;
+    
+    double totalAnimTime = (dCapDelay + 0.5) * 1000; 
+}
+
+<style>
+    .pisti-card { width: 80px; height: 120px; transition: transform 0.2s; cursor: pointer; }
+    .pisti-card:hover { transform: translateY(-10px); }
+    .card-back-design { background: repeating-linear-gradient(45deg, #2c3e50, #2c3e50 10px, #34495e 10px, #34495e 20px); border: 2px solid #fff; border-radius: 5px; }
+    .board-pile { position: relative; width: 80px; height: 120px; margin: 0 auto; }
+    .board-card { position: absolute; top: 0; left: 0; }
+    
+    /* ÖZEL KART TASARIMLARI (Altın ve Gümüş) */
+    .gold-card {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffc107 100%) !important;
+        border: 2px solid #ffb300 !important;
+        box-shadow: 0 0 10px rgba(255, 193, 7, 0.4);
+    }
+    .silver-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ced4da 100%) !important;
+        border: 2px solid #adb5bd !important;
+        box-shadow: 0 0 8px rgba(173, 181, 189, 0.4);
+    }
+
+    /* Atış Animasyonları */
+    .player-throw { opacity: 0; animation: throwFromBottom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .dealer-throw { opacity: 0; animation: throwFromTop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    
+    @@keyframes throwFromBottom {
+        0% { transform: translateY(300px) scale(0.5); opacity: 0; }
+        100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    @@keyframes throwFromTop {
+        0% { transform: translateY(-300px) scale(0.5); opacity: 0; }
+        100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    /* Uçma/Toplama Animasyonları */
+    .fly-to-player { animation: flyDown 1s ease-in-out forwards; z-index: 100; }
+    .fly-to-dealer { animation: flyUp 1s ease-in-out forwards; z-index: 100; }
+    
+    @@keyframes flyDown {
+        0% { transform: translateY(0) scale(1); opacity: 1; }
+        20% { transform: translateY(-10px) scale(1.1); opacity: 1; } 
+        100% { transform: translateY(150px) scale(0.3); opacity: 0; } 
+    }
+    @@keyframes flyUp {
+        0% { transform: translateY(0) scale(1); opacity: 1; }
+        20% { transform: translateY(10px) scale(1.1); opacity: 1; }
+        100% { transform: translateY(-150px) scale(0.3); opacity: 0; } 
+    }
+
+    /* Oyun Sonu Ekranı Animasyonu */
+    .result-backdrop {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.6); z-index: 9998; opacity: 0; animation: fadeIn 0.4s forwards;
+    }
+    
+    .result-screen { 
+        opacity: 0; position: fixed; top: 50%; left: 50%; width: 90%; max-width: 600px; z-index: 9999;
+        animation: popInCenter 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+    }
+    
+    @@keyframes fadeIn { to { opacity: 1; } }
+    @@keyframes popInCenter {
+        0% { opacity: 0; transform: translate(-50%, -30%) scale(0.8); }
+        100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+</style>
+
+<div class="container mt-2">
+    <!-- Bilgisayar Alanı -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded-4 shadow-sm mb-3">
+                <h5 class="text-muted mb-0"><i class="bi bi-robot me-2"></i>Bilgisayarın Eli</h5>
+                <span class="badge bg-secondary fs-6 px-3 py-2 rounded-pill">
+                    Skor: @Model.DealerScore | Pişti: @Model.DealerPistiCount
+                </span>
+            </div>
+            
+            <div class="d-flex justify-content-center gap-2">
+                @foreach (var c in Model.DealerHand)
+                {
+                    <div class="card pisti-card card-back-design shadow-sm"></div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Masa (Board) -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <div class="p-4 bg-light rounded-4 shadow-sm d-inline-block position-relative" style="min-width: 300px; min-height: 220px;">
+                <h5 class="text-secondary mb-3">Yerdeki Kartlar</h5>
+                
+                <div class="board-pile">
+                    
+                    <!-- 1. Oyuncunun Aldığı Kartlar -->
+                    @if (Model.DidPlayerCapture)
+                    {
+                        <div class="fly-to-player" style="position:absolute; width:100%; height:100%; animation-delay: @(Format(pCapDelay))s;">
+                            @{ int i1 = 0; }
+                            @foreach (var card in Model.PlayerCapturedCardsThisTurn)
+                            {
+                                bool isPThrow = (card == Model.PlayerLastPlayedCard);
+                                string animClass = isPThrow ? "player-throw" : "";
+                                var parts = card.Split('-');
+                                <div class="card pisti-card board-card shadow-sm @animClass" style="top: @(i1*2)px; left: @(i1*2)px; @(animClass != "" ? $"animation-delay: {Format(pThrowDelay)}s;" : "")">
+                                    <div class="card-body p-2 text-center rounded @GetSpecialCardClass(parts[0], parts[1]) @GetCardColor(parts[0])">
+                                        <h4 class="card-title mt-1 fw-bold">@parts[1]</h4>
+                                        <h2 class="card-text">@GetCardSymbol(parts[0])</h2>
+                                    </div>
+                                </div>
+                                i1++;
+                            }
+                        </div>
+                    }
+
+                    <!-- 2. Bilgisayarın Aldığı Kartlar -->
+                    @if (Model.DidDealerCapture)
+                    {
+                        <div class="fly-to-dealer" style="position:absolute; width:100%; height:100%; animation-delay: @(Format(dCapDelay))s;">
+                            @{ int i2 = 0; }
+                            @foreach (var card in Model.DealerCapturedCardsThisTurn)
+                            {
+                                bool isPThrow = (card == Model.PlayerLastPlayedCard);
+                                bool isDThrow = (card == Model.DealerLastPlayedCard);
+                                string animClass = isPThrow ? "player-throw" : (isDThrow ? "dealer-throw" : "");
+                                double delay = isPThrow ? pThrowDelay : dThrowDelay;
+                                var parts = card.Split('-');
+                                <div class="card pisti-card board-card shadow-sm @animClass" style="top: @(i2*2)px; left: @(i2*2)px; @(animClass != "" ? $"animation-delay: {Format(delay)}s;" : "")">
+                                    <div class="card-body p-2 text-center rounded @GetSpecialCardClass(parts[0], parts[1]) @GetCardColor(parts[0])">
+                                        <h4 class="card-title mt-1 fw-bold">@parts[1]</h4>
+                                        <h2 class="card-text">@GetCardSymbol(parts[0])</h2>
+                                    </div>
+                                </div>
+                                i2++;
+                            }
+                        </div>
+                    }
+
+                    <!-- 3. Yerde Kalan Kartlar -->
+                    @if (Model.Board.Any())
+                    {
+                        <div style="position:absolute; width:100%; height:100%;">
+                            @{ int i3 = 0; }
+                            @foreach (var card in Model.Board)
+                            {
+                                bool isPThrow = (card == Model.PlayerLastPlayedCard);
+                                bool isDThrow = (card == Model.DealerLastPlayedCard);
+                                string animClass = isPThrow ? "player-throw" : (isDThrow ? "dealer-throw" : "");
+                                double delay = isPThrow ? pThrowDelay : dThrowDelay;
+                                var parts = card.Split('-');
+                                <div class="card pisti-card board-card shadow-sm @animClass" style="top: @(i3*2)px; left: @(i3*2)px; @(i3 == Model.Board.Count - 1 ? $"transform: rotate({new Random().Next(-5, 5)}deg);" : "") @(animClass != "" ? $"animation-delay: {Format(delay)}s;" : "")">
+                                    <div class="card-body p-2 text-center rounded @GetSpecialCardClass(parts[0], parts[1]) @GetCardColor(parts[0])">
+                                        <h4 class="card-title mt-1 fw-bold">@parts[1]</h4>
+                                        <h2 class="card-text">@GetCardSymbol(parts[0])</h2>
+                                    </div>
+                                </div>
+                                i3++;
+                            }
+                        </div>
+                    }
+                    
+                    @if(!Model.Board.Any() && !Model.DidPlayerCapture && !Model.DidDealerCapture)
+                    {
+                        <div class="text-muted mt-4"><i class="bi bi-suit-club fs-1 opacity-25"></i><br>Masa Boş</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Oyuncu Alanı -->
+    <div class="row">
+        <div class="col-12 text-center">
+            <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded-4 shadow-sm mb-3">
+                <h5 class="text-primary mb-0"><i class="bi bi-person me-2"></i>Senin Elin</h5>
+                <span class="badge bg-primary fs-6 px-3 py-2 rounded-pill">
+                    Skor: @Model.PlayerScore | Pişti: @Model.PlayerPistiCount
+                </span>
+            </div>
+
+            <div class="d-flex justify-content-center gap-2">
+                @foreach (var card in Model.PlayerHand)
+                {
+                    var parts = card.Split('-');
+                    <form method="post" asp-action="PlayCard" class="d-inline">
+                        <input type="hidden" name="card" value="@card" />
+                        <button type="submit" class="btn p-0 border-0 bg-transparent play-btn" @(Model.IsGameOver ? "disabled" : "")>
+                            <div class="card pisti-card shadow-sm border-primary">
+                                <div class="card-body p-2 text-center rounded @GetSpecialCardClass(parts[0], parts[1]) @GetCardColor(parts[0])">
+                                    <h4 class="card-title mt-1 fw-bold">@parts[1]</h4>
+                                    <h2 class="card-text">@GetCardSymbol(parts[0])</h2>
+                                </div>
+                            </div>
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+    
+    <!-- Oyun Sonu Sonuç Ekranı (Merkeze Sabitlenmiş Pop-up) -->
+    @if (Model.IsGameOver)
+    {
+        <div class="result-backdrop" style="animation-delay: @(Format(dCapDelay + 0.3))s;"></div>
+        
+        <div class="result-screen" style="animation-delay: @(Format(dCapDelay + 0.5))s;">
+            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+                <div class="card-header @(Model.ChipChange > 0 ? "bg-success" : (Model.ChipChange == 0 ? "bg-warning" : "bg-danger")) text-white text-center py-4">
+                    <h2 class="mb-0 text-white fw-bold">
+                        @if(Model.ChipChange > 0) { <i class="bi bi-trophy-fill me-2 text-warning"></i> }
+                        else if(Model.ChipChange < 0) { <i class="bi bi-emoji-frown-fill me-2"></i> }
+                        @Model.GameMessage
+                    </h2>
+                </div>
+                
+                <div class="card-body p-4 p-md-5 bg-light">
+                    <div class="row text-center mb-4">
+                        <div class="col-6 border-end">
+                            <h5 class="text-primary"><i class="bi bi-person-fill me-2"></i>Senin Skorun</h5>
+                            <h1 class="display-3 fw-bold text-dark mb-0">@Model.PlayerScore</h1>
+                            <span class="badge bg-primary rounded-pill mt-2 fs-6 px-3">@Model.PlayerPistiCount Pişti</span>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-secondary"><i class="bi bi-robot me-2"></i>Bilgisayar</h5>
+                            <h1 class="display-3 fw-bold text-dark mb-0">@Model.DealerScore</h1>
+                            <span class="badge bg-secondary rounded-pill mt-2 fs-6 px-3">@Model.DealerPistiCount Pişti</span>
+                        </div>
+                    </div>
+                    
+                    <div class="alert bg-white border border-2 text-center fs-5 shadow-sm rounded-4 py-3">
+                        Masa Bahsi: <strong>@Model.CurrentBet Çip</strong> <br>
+                        Kasa Durumu: <strong class="fs-4 @(Model.ChipChange > 0 ? "text-success" : (Model.ChipChange < 0 ? "text-danger" : "text-dark"))">
+                            @(Model.ChipChange > 0 ? "+" : "")@Model.ChipChange Çip
+                        </strong>
+                    </div>
+                    
+                    <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mt-4">
+                        <form method="post" asp-controller="Pisti" asp-action="Start" class="m-0 w-100">
+                            <input type="hidden" name="betAmount" value="@Model.CurrentBet" />
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm w-100 fw-bold py-3">
+                                <i class="bi bi-arrow-repeat me-2"></i>Yeniden (@Model.CurrentBet Çip)
+                            </button>
+                        </form>
+                        
+                        <a asp-action="Index" class="btn btn-outline-secondary btn-lg rounded-pill shadow-sm w-100 fw-bold py-3 d-flex align-items-center justify-content-center">
+                            <i class="bi bi-cash-coin me-2"></i>Bahis Değiştir
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        let btns = document.querySelectorAll(".play-btn");
+        btns.forEach(b => b.disabled = true);
+        
+        setTimeout(() => {
+            btns.forEach(b => b.disabled = false);
+        }, @(totalAnimTime));
+    });
+</script>

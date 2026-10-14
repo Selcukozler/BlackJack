@@ -1,0 +1,67 @@
+@model List<BlackJack.Models.ApplicationUser>
+@{
+    ViewData["Title"] = "Liderlik Tablosu";
+    int rank = 1;
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary py-3">
+                <h4 class="card-title mb-0 text-white"><i class="bi bi-trophy-fill me-2 text-warning"></i>En Zengin Oyuncular</h4>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-center" style="width: 15%;">Sıra</th>
+                                <th>Oyuncu</th>
+                                <th class="text-end pe-4">Toplam Çip</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model != null && Model.Any())
+                            {
+                                @foreach (var player in Model)
+                                {
+                                    // İlk 3 sıradaki oyunculara özel arka plan renkleri verelim
+                                    string rowClass = rank == 1 ? "table-warning" : (rank == 2 ? "table-secondary" : (rank == 3 ? "table-info" : ""));
+                                    
+                                    <tr class="@rowClass">
+                                        <td class="text-center fw-bold fs-5 align-middle">
+                                            @if (rank == 1) { <span title="1. Sıra">🥇</span> }
+                                            else if (rank == 2) { <span title="2. Sıra">🥈</span> }
+                                            else if (rank == 3) { <span title="3. Sıra">🥉</span> }
+                                            else { <span>@rank</span> }
+                                        </td>
+                                        <td class="fw-bold align-middle">
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar avatar-sm bg-dark me-3">
+                                                    <span class="avatar-content text-white" style="font-size: 0.8rem;">
+                                                        @player.Email.Substring(0, 1).ToUpper()
+                                                    </span>
+                                                </div>
+                                                @player.Email.Split('@')[0]
+                                            </div>
+                                        </td>
+                                        <td class="text-end pe-4 fw-bold text-success fs-5 align-middle">
+                                            @player.TotalChips <i class="bi bi-coin text-warning ms-1"></i>
+                                        </td>
+                                    </tr>
+                                    rank++;
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="3" class="text-center py-5 text-muted">Henüz hiç oyuncu yok.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

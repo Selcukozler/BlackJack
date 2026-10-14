@@ -18,6 +18,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options => {
 
 // 3. Servis Katmanı Enjeksiyonu (DI)
 builder.Services.AddScoped<IBlackjackService, BlackjackService>();
+builder.Services.AddScoped<IPistiService, PistiService>();
 
 // 4. MVC Controller ve View desteği
 builder.Services.AddControllersWithViews();
